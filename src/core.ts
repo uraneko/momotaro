@@ -2,6 +2,8 @@
 // it doesnt have the functionality of an option type
 export type Opt<T> = T | undefined;
 
+export const NODISPLAY = "hidden";
+
 /// checks if a value is not undefined
 /// returns boolean 
 export const is = <T>(val: Opt<T>): boolean => {
@@ -31,9 +33,9 @@ export const make = <T extends Element>(
 	/// the element children
 	children?: Opt<T>[]
 ): T => {
-	const dom = document.createElement(tag);
+	const html = document.createElement(tag);
 	if (children != undefined) {
-		dom.append(...children.filter((child: Opt<T>) => child != undefined) as T[]);
+		html.append(...children.filter((child: Opt<T>) => child != undefined) as T[]);
 
 	}
 	if (attrs != undefined) {
@@ -41,27 +43,29 @@ export const make = <T extends Element>(
 			if (v == undefined) { continue; }
 			const prefix = k.slice(0, 2);
 			if (prefix == "p:") {
-				(dom as any)[k.slice(2)] = v;
+				(html as any)[k.slice(2)] = v;
 
 			} else if (prefix == "s:") {
-				dom.style[k.slice(2) as any] = v;
+				html.style[k.slice(2) as any] = v;
 
 			} else if (prefix == "e:") {
-				dom.addEventListener(k.slice(2), v);
+				html.addEventListener(k.slice(2), v);
 
 			} else {
-				dom.setAttribute(k, v);
+				html.setAttribute(k, v);
 			}
 		}
 	}
 
-	return dom as any as T;
+	return html as any as T;
 }
 
 // TEST: tests the make function
 // currently not working since runtimes have no access to the dom apis (no window.document)
 
-// export type Constructor<T> = { new(): T };
+export const put = (parent: Element, child: Element, idx: number) => {
+	parent.insertBefore(parent.childNodes[idx + 1], child);
+}
 
 // the following classes are not to be inherited but they are simply here to record the 
 // methods they provide 

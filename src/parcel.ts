@@ -1,14 +1,5 @@
 import { type Opt, Clone } from "./core";
 
-
-// const type_name = (type: string): Opt<string> => {
-// 	return type == "application/json" ? "JSON" :
-// 		type == "xml/img+svg" ? "SVGSVGElement" :
-// 			type == "text/html" ? "HTMLElement" :
-// 				type == "text/plain" ? "string" :
-// 					undefined
-// }
-
 export class Parcel extends Clone {
 	constructor(headers?: Headers) {
 		super();
@@ -179,7 +170,18 @@ class ParcelResponse extends Clone {
 const parse_json = (data: any): any => {
 	// const json = data.json();
 	// TODO
-	// for (let [k, v] of Object.values(data as JSON)) {}
+	for (let [k, v] of Object.entries(data as JSON)) {
+		if (v.startsWith("<svg ")) {
+			data[k] = new DOMParser().parseFromString(v, "image/svg+xml").childNodes[0];
+		} else if (
+			v.startsWith("<a ") || 
+			v.startsWith("<div ") || 
+			v.startsWith("<span ") || 
+			v.startsWith("<button ")
+		){
+			data[k] = new DOMParser().parseFromString(v, "text/html").body.childNodes[0];
+		}
+	}
 
 	return data;
 }
