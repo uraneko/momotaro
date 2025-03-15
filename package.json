@@ -1,0 +1,24 @@
+{
+	"name": "momo_core",
+	"version": "0.1.0",
+	"license": "MIT",
+	"private": true,
+	"description": "",
+	"keywords": [],
+	"type": "module",
+	"scripts": {
+		"test": "vitest",
+		"build": "tsc -p tsconfig.json ",
+		"help": "tsc --help",
+		"doc": "typedoc src/main.ts"
+	},
+	"exports": {
+		"parcel": "./src/parcel.ts",
+		"core": "./src/core.ts"
+	},
+	"devDependencies": {
+		"typedoc": "^0.27.9",
+		"typescript": "^5.8.2",
+		"vitest": "^3.0.8"
+	}
+}
