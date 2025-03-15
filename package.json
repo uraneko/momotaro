@@ -1,14 +1,25 @@
 {
-  "name": "momo_components",
-  "module": "main.ts",
-  "type": "module",
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  },
-  "dependencies": {
-    "momo_build": "../momo_build"
-  }
+	"name": "momo_components",
+	"version": "0.1.0",
+	"license": "MIT",
+	"private": true,
+	"description": "",
+	"keywords": [],
+	"type": "module",
+	"scripts": {
+		"test": "vitest",
+		"build": "tsc",
+		"help": "tsc --help",
+		"doc": "typedoc src/**/*.ts"
+	},
+	"exports": {
+		"./collections/*": "./src/collections/*.ts",
+		"./primitives/*": "./src/primitives/*.ts"
+	},
+	"devDependencies": {
+		"typedoc": "^0.27.9",
+		"typescript": "^5.8.2",
+		"vitest": "^3.0.8",
+		"momo_core": "link:../momo_core"
+	}
 }

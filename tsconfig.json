@@ -8,14 +8,17 @@
 		"target": "ESNext",
 		"module": "ESNext",
 		"moduleDetection": "force",
-		"jsx": "react-jsx",
+		// "jsx": "react-jsx",
 		"allowJs": true,
 		// Bundler mode
 		"moduleResolution": "bundler",
-		"allowImportingTsExtensions": true,
-		// modified value
-		"verbatimModuleSyntax": false,
-		"noEmit": true,
+		// "allowImportingTsExtensions": true,
+		"verbatimModuleSyntax": true,
+		// "noEmit": true,
+		"outDir": "",
+		"rootDir": "src",
+		"declaration": true,
+		"declarationMap": true,
 		// Best practices
 		"strict": true,
 		"skipLibCheck": true,
@@ -24,5 +27,10 @@
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false
-	}
+	},
+	"include": [
+		"src/collections/*"
+		// "src/primitives/*"
+	],
+	"exclude": []
 }

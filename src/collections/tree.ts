@@ -1,7 +1,7 @@
-import { make, MonoContainer, Opt, Res } from "momo_build/main";
+import { make, type Opt } from "momo_core/core";
 
 // NOTE: the T[] array syntax gets confusing with more complex types, use only in simple cases
-class Node {
+export class Node {
 	constructor(value?: string, children?: Node[]) {
 		this.value = value;
 		if (children != undefined) this.children = children;
@@ -17,12 +17,13 @@ class Node {
 					this.value == undefined ? "" : " has-value"
 	}
 
+	// TODO: on_click event for every node 
 	parse(is_root: boolean, title?: string): HTMLSpanElement {
 		return make("span",
 			{ "class": this.node_class(is_root), "p:textContent": this.value, "id": title },
 			this.children == undefined ?
 				<Array<HTMLSpanElement>>[] :
-				this.children.map((node) => node.parse(false))
+				this.children.map((node: Node) => node.parse(false))
 		);
 	}
 
@@ -84,24 +85,29 @@ class Node {
 
 	// declares a new value for this node 
 	// doesn't care wether the value was set before or not (undefined)
-	decl_value(value: string) {
+	write_value(value: string) {
 		this.value = value;
 	}
+
+	// FIXME: node.value should be a string and not an Opt<string>
+	read_value(): Opt<string> { return this.value; }
 }
 
 
-export class NodeTree {
+export class Tree {
 	constructor(root: Node, title?: string) {
 		this.tree = root;
 		this.title = title;
-		this.dom = this.tree.parse(true, this.title);
+		this.html = this.tree.parse(true, this.title);
 	}
 
-	private dom: HTMLSpanElement;
+	private html: HTMLSpanElement;
 	private tree: Node;
 	private title: Opt<string>;
 
-	element() { return this.dom; }
+	element() { return this.html; }
+
+	root() { return this.tree; }
 
 	is_valid_path(idx: number[]) {
 		return idx.length > 0 && this.tree.has_children();
@@ -134,8 +140,8 @@ export class NodeTree {
 		if (res == undefined) return res;
 
 		idx.push(rplc);
-		const dom_node = this.dom_find_node(...idx);
-		dom_node.replaceWith(node.parse(false))
+		const html_node = this.html_find_node(...idx);
+		html_node.replaceWith(node.parse(false))
 	}
 
 	remove(...idx: number[]): Opt<Node> {
@@ -149,8 +155,8 @@ export class NodeTree {
 		if (res == undefined) return res
 
 		idx.push(rm);
-		const dom_node = this.dom_find_node(...idx);
-		dom_node.remove();
+		const html_node = this.html_find_node(...idx);
+		html_node.remove();
 	}
 
 	insert(node: Node, ...idx: number[]): Opt<Node> {
@@ -163,13 +169,13 @@ export class NodeTree {
 		const res = parent.insert(node, add);
 		if (res == node) return res;
 
-		const dom_parent = this.dom_find_node(...idx);
-		dom_parent.insertBefore(dom_parent.childNodes[add + 1], node.parse(false));
+		const html_parent = this.html_find_node(...idx);
+		html_parent.insertBefore(html_parent.childNodes[add + 1], node.parse(false));
 	}
 
 	// no need to check validity of idx 
 	// since the method calling this one does that already 
-	dom_parse_idx(...idx: number[]): string {
+	html_parse_idx(...idx: number[]): string {
 		let query = "";
 		idx = idx.reverse();
 		while (idx.length > 0) {
@@ -181,18 +187,18 @@ export class NodeTree {
 
 	// TODO: this method needs to accompany the node operations methods above 
 	// so that the dom is in sync with the node tree
-	dom_find_node(...idx: number[]): HTMLSpanElement {
-		return this.dom.querySelector(this.dom_parse_idx(...idx))!;
+	html_find_node(...idx: number[]): HTMLSpanElement {
+		return this.html.querySelector(this.html_parse_idx(...idx))!;
 	}
 }
 
-class NodeTreeNavigator {
-	constructor(tree: NodeTree) {
+class TreeNavigator {
+	constructor(tree: Tree) {
 		this.tree = tree;
 		this.anchor = []
 	}
 
-	private tree: NodeTree;
+	private tree: Tree;
 	private anchor: Array<number>;
 
 	// moves the anchor to the next sibling in the tree 
@@ -235,8 +241,8 @@ class NodeTreeNavigator {
 	// returns the index sequence of the anchor node
 	position(): number[] { return this.anchor; }
 
-	// TODO: 
-	// next() method but jumps to first sibling if anchor node is the last one in array of children
+	// next() method but jumps to first sibling if anchor node is the 
+	// last one in array of children
 	jumping_next() {
 		const parent = this.tree.node(...this.anchor.slice(0, -2))!;
 		const curr = this.anchor.slice(-1)[0];
@@ -249,7 +255,8 @@ class NodeTreeNavigator {
 			this.anchor.splice(-1, 1, curr + 1);
 		}
 	}
-	// prev() method but jumps to last sibling if anchor node is the first one in array of children
+	// prev() method but jumps to last sibling if anchor node is the 
+	// first one in array of children
 	jumping_prev() {
 		const parent = this.tree.node(...this.anchor.slice(0, -2))!;
 		const count = parent.count();
@@ -260,4 +267,35 @@ class NodeTreeNavigator {
 			this.anchor.splice(-1, 1, curr - 1);
 		}
 	}
+
+	// parses the values of the anchor index sequence nodes 
+	// into an fs file/dir path that can be used in a fetch request 
+	fs_parse_idx_path() {
+		let anchor = this.anchor.reverse();
+		let node = this.tree.root().child(anchor.pop()!)
+		let path = node.read_value();
+
+		while (anchor.length > 0) {
+			node = node.child(anchor.pop()!);
+			path += "/" + node.read_value();
+		}
+
+		return path;
+	}
+
+	fs_parse_html_path(element: HTMLSpanElement): string {
+		// FIXME: textContent can't be null in the node, otherwise dont make the node at all
+		let path = element.textContent!;
+		while (!element.classList.contains("is-root")) {
+			element = element.parentElement!;
+			path += "/" + element.textContent!;
+		}
+
+		return path;
+	}
+
+	// TODO: how to get index sequence of node just by hovering over it 
+	// ANSWER: you keep incrementing html_node value and 
+	// going backwards to parent until you hit the root node
+	// TODO: on_hover event to pre fetch node fs data 
 }
