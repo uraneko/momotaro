@@ -1,4 +1,4 @@
-import { make, type Opt, is, NODISPLAY } from "momo_core/core";
+import { make, type Maybe, is, NODISPLAY } from "momo_core/core";
 
 type Wrapper = "a" | "button" | "span";
 type Content = "main" | "sub" | "-";
@@ -12,32 +12,34 @@ export class Vector /* extends Map<string,Element> */ {
 	constructor(
 		nodes: JSON,
 		id: string,
-		kind: "button" | "div" = "button",
-		direction: "column" | "row" = "row"
 	) {
 		// super(Object.entries(nodes));
 
 		this._id = id;
-		this._kind = kind;
-		this._direction = direction;
+		this._direction = "row";
 		this._nodes = new Map(Object.entries(nodes));
 		this._is_frozen = false;
-		this.cocoon();
+		// this.cocoon();
 	}
 
 	_id: string;
-	_kind: "button" | "div";
 	_direction: "column" | "row";
 	_nodes: Map<string, Element>;
 	_is_frozen: boolean;
 
-	cocoon() {
-		const iter = this.nodes();
-		let next = iter.next();
-		while (next.done == false) {
-			this._nodes.set(next.value[0], vector_child(next.value, this.kind()));
-			next = iter.next();
-		}
+	// cocoon() {
+	// 	const iter = this.nodes();
+	// 	let next = iter.next();
+	// 	while (next.done == false) {
+	// 		this._nodes.set(next.value[0], vector_child(next.value, this._kind));
+	// 		next = iter.next();
+	// 	}
+	// }
+
+	update(name: string, e: Element) {
+		if (!this.contains(name)) return undefined;
+
+		this._nodes.set(name, e);
 	}
 
 	nodes(): MapIterator<[string, Element]> {
@@ -46,11 +48,23 @@ export class Vector /* extends Map<string,Element> */ {
 
 	id(): string { return this._id; }
 
-	kind(): "button" | "div" {
-		return this._kind;
-	}
-
 	direction() { return this._direction; }
+
+	/// inserts a new node write before the node with the given name 
+	/// costly  
+	insert(node: [string, Element], name: string) {
+		const map = new Map();
+		const iter = this.nodes();
+		let next = iter.next();
+		while (!next.done) {
+			if (next.value[0] == name) {
+				map.set(node[0], node[1]);
+			}
+			map.set(next.value[0], next.value[1]);
+			next = iter.next();
+		}
+		this._nodes = map;
+	}
 
 	// adds a new Node to the end of queue
 	push(node: [string, Element]) {
@@ -66,12 +80,10 @@ export class Vector /* extends Map<string,Element> */ {
 		return this._nodes.has(name);
 	}
 
-	event(name: string, kind: string, callback: (e?: Event) => void) {
+	read(name: string): Maybe<Element> {
 		if (!this.contains(name)) return undefined;
 
-		// TODO
-		const node = this._nodes.get(name)!;
-		node.addEventListener(kind, callback);
+		return this._nodes.get(name)!;
 	}
 
 	collect(): Array<Element> {
@@ -160,16 +172,16 @@ customElements.define("vector-coll", VectorElement);
 
 const vector_child = (n: [string, Element], kind: "button" | "div") => {
 	const tag = n[1].tagName.toLowerCase();
-	const node_kind = (() => {
-		if (tag == "svg") {
-			return "icon";
-		} else if (tag == "span") {
-			return "text";
-		} else {
-			// tag == "div"
-			return "icon+text";
-		}
-	})();
+	let node_kind;
+	if (tag == "svg") {
+		node_kind = "icon";
+	} else if (tag == "span") {
+		node_kind = "text";
+	} else {
+		// tag == "div"
+		node_kind = "icon+text";
+	}
+
 	return make(
 		kind,
 		{ "class": n[0] + "-node-wrapper " + node_kind + " vector-child" },

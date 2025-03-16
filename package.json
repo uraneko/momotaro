@@ -14,7 +14,8 @@
 	},
 	"exports": {
 		"./collections/*": "./src/collections/*.ts",
-		"./primitives/*": "./src/primitives/*.ts"
+		"./primitives/*": "./src/primitives/*.ts",
+		"./wrappers/*": "./src/wrappers/*.ts"
 	},
 	"devDependencies": {
 		"typedoc": "^0.27.9",
