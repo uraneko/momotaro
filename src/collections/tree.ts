@@ -1,4 +1,4 @@
-import { make, type Opt } from "momo_core/core";
+import { make, type Maybe } from "momo_core/core";
 
 // NOTE: the T[] array syntax gets confusing with more complex types, use only in simple cases
 export class Node {
@@ -7,8 +7,8 @@ export class Node {
 		if (children != undefined) this.children = children;
 	}
 
-	private value: Opt<string>;
-	private children: Opt<Node[]>;
+	private value: Maybe<string>;
+	private children: Maybe<Node[]>;
 
 	node_class(is_root: boolean) {
 		return "tree-node" +
@@ -49,7 +49,7 @@ export class Node {
 		return count > 0 && count > idx && idx >= 0;
 	}
 
-	replace(node: Node, idx: number): Opt<Node> {
+	replace(node: Node, idx: number): Maybe<Node> {
 		if (this.is_valid_idx(idx)) {
 			let old = this.children![idx];
 			this.children![idx] = node;
@@ -58,11 +58,11 @@ export class Node {
 		} else return undefined;
 	}
 
-	remove(idx: number): Opt<Node> {
+	remove(idx: number): Maybe<Node> {
 		if (this.is_valid_idx(idx)) {
 			this.children!.splice(idx, 1)[0];
 			// FIXME: undefined is confusing and shrewd
-			// once Res and Opt are written change all the undefined logic with them 
+			// once Res and Maybe are written change all the undefined logic with them 
 		} else return undefined;
 	}
 
@@ -70,7 +70,7 @@ export class Node {
 	// if the index does not exist in array length 
 	// or children is undefined then 
 	// returns the given node and does nothing 
-	insert(node: Node, idx: number): Opt<Node> {
+	insert(node: Node, idx: number): Maybe<Node> {
 		if (this.is_valid_idx(idx - 1)) {
 			this.children!.splice(idx, 0, node);
 
@@ -89,8 +89,8 @@ export class Node {
 		this.value = value;
 	}
 
-	// FIXME: node.value should be a string and not an Opt<string>
-	read_value(): Opt<string> { return this.value; }
+	// FIXME: node.value should be a string and not an Maybe<string>
+	read_value(): Maybe<string> { return this.value; }
 }
 
 
@@ -103,7 +103,7 @@ export class Tree {
 
 	private html: HTMLSpanElement;
 	private tree: Node;
-	private title: Opt<string>;
+	private title: Maybe<string>;
 
 	element() { return this.html; }
 
@@ -113,7 +113,7 @@ export class Tree {
 		return idx.length > 0 && this.tree.has_children();
 	}
 
-	node(...idx: number[]): Opt<Node> {
+	node(...idx: number[]): Maybe<Node> {
 		if (!this.is_valid_path(idx)) return undefined;
 
 		idx = idx.reverse();
@@ -129,7 +129,7 @@ export class Tree {
 		return node;
 	}
 
-	replace(node: Node, ...idx: number[]): Opt<Node> {
+	replace(node: Node, ...idx: number[]): Maybe<Node> {
 		if (!this.is_valid_path(idx)) return undefined;
 
 		const rplc = idx.pop()!;
@@ -144,7 +144,7 @@ export class Tree {
 		html_node.replaceWith(node.parse(false))
 	}
 
-	remove(...idx: number[]): Opt<Node> {
+	remove(...idx: number[]): Maybe<Node> {
 		if (!this.is_valid_path(idx)) return undefined;
 
 		const rm = idx.pop()!;
@@ -159,7 +159,7 @@ export class Tree {
 		html_node.remove();
 	}
 
-	insert(node: Node, ...idx: number[]): Opt<Node> {
+	insert(node: Node, ...idx: number[]): Maybe<Node> {
 		if (!this.is_valid_path(idx)) return undefined;
 
 		const add = idx.pop()!;

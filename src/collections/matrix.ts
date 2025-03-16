@@ -2,7 +2,7 @@ import { make, type Opt } from "momo_core/core";
 
 type Lvl = 0 | 1 | 2 | 3;
 
-class Matrix {
+export class Matrix {
 	constructor(
 		cols: number,
 		rows: number,
