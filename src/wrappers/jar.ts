@@ -4,16 +4,18 @@ const parent_kind = (parent: string): string => {
 	return parent == "vector-coll" ? "vector" : parent == "tree-coll" ? "tree" : "matrix";
 }
 
+const children_tag = (children: Element[], tag: string): boolean => {
+	return children.every((child: Element) =>
+		child.tagName.toLowerCase() == tag);
+}
+
 export class Jar extends HTMLElement {
-	constructor(parent: string, name: string, child: Element) {
+	constructor(...children: Element[]) {
 		super();
 
 		this._event = "none";
-		const child_tag = child.tagName.toLowerCase();
-		const kind = child_tag == "svg" ? "-icon" : child_tag == "span" ? "-text" : "-mixed";
-		this.classList.add(name + kind + "-jar");
-		this.classList.add(parent_kind(parent.toLowerCase()) + "-child");
-		this.appendChild(child);
+
+		this.append(...children);
 	}
 
 	private _event: JarEvent;

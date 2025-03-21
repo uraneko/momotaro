@@ -14,7 +14,7 @@ export class MatrixElement extends HTMLElement {
 		const vec = cols_vec.to_element();
 		vec.cls("matrix-cols");
 		this.appendChild(vec);
-		const jar = new Jar("vector-coll", "matrix-rows ");
+		const jar = new Jar();
 		// make("jar-vessel", { "class": "matrix-rows" })
 		this.appendChild(jar);
 

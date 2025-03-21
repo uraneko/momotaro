@@ -26,11 +26,11 @@ export class TreeElement extends HTMLElement {
 customElements.define("tree-coll", TreeElement);
 
 const parse_dir = (parent: string, name: string, nodes: Array<Node>) => {
-	const name_jar: Jar = new Jar("jar-vessel", name + " node-name ",
+	const name_jar: Jar = new Jar(
 		make("span", { "class": "node-name", "p:textContent": name })
 	);
 
-	const nodes_jar = new Jar("jar-vessel", name + " node-children ");
+	const nodes_jar = new Jar();
 	nodes.forEach((node: Node) => {
 		if (is_str(node)) {
 			nodes_jar.appendChild(dir_node(node as string));
@@ -41,7 +41,7 @@ const parse_dir = (parent: string, name: string, nodes: Array<Node>) => {
 		}
 	});
 
-	return new Jar(parent, name + " node-jar ", name_jar, nodes_jar);
+	return new Jar(name_jar, nodes_jar);
 }
 
 type Node = string | Record<string, Node[]>;
