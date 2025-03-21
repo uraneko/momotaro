@@ -1,4 +1,4 @@
-import { make, type Maybe, is, NODISPLAY } from "momo_core/core";
+import { type _, make, type Maybe, is, NODISPLAY } from "momo_core/core";
 
 type Wrapper = "a" | "button" | "span";
 type Content = "main" | "sub" | "-";
@@ -10,16 +10,28 @@ type Callbacks = {
 
 export class Vector /* extends Map<string,Element> */ {
 	constructor(
-		nodes: JSON,
 		id: string,
+		nodes: JSON,
 	) {
 		// super(Object.entries(nodes));
 
 		this._id = id;
 		this._direction = "row";
-		this._nodes = new Map(Object.entries(nodes));
+		this._nodes = nodes.constructor.name == "Map" ? nodes as _ as Map<_, _> : new Map(Object.entries(nodes));
 		this._is_frozen = false;
 		// this.cocoon();
+	}
+
+	static from_arr(id: string, ...nodes: string[]): Vector {
+		let idx = 0;
+		const json = new Map(nodes.map((node: string) => {
+			const kv = [idx,
+				make("span", { "class": "vector-child " + idx, "p:textContent": node })];
+			idx += 1;
+			return kv;
+		}) as Array<[number, Element]>);
+
+		return new Vector(id, json as Object as JSON);
 	}
 
 	_id: string;
@@ -50,7 +62,7 @@ export class Vector /* extends Map<string,Element> */ {
 
 	direction() { return this._direction; }
 
-	/// inserts a new node write before the node with the given name 
+	/// inserts a new node right before the node with the given name 
 	/// costly  
 	insert(node: [string, Element], name: string) {
 		const map = new Map();
@@ -64,6 +76,28 @@ export class Vector /* extends Map<string,Element> */ {
 			next = iter.next();
 		}
 		this._nodes = map;
+	}
+
+	// reorders the nodes according to the key array given 
+	// TODO better send a vec from the server rather than reorder the data at the front end side
+	order(...order: string[]) {
+		if (order.length == 0 ||
+			this._nodes.size == 0
+		) return false;
+
+		order.filter((k: string) => this.contains(k));
+
+		const map = new Map();
+		const iter = order.values();
+		let next = iter.next();
+		while (!next.done) {
+			map.set(next.value, this._nodes.get(next.value!));
+			next = iter.next();
+		}
+
+		this._nodes = map;
+
+		return true;
 	}
 
 	// adds a new Node to the end of queue
@@ -117,7 +151,7 @@ export class Vector /* extends Map<string,Element> */ {
 	}
 }
 
-class VectorElement extends HTMLElement {
+export class VectorElement extends HTMLElement {
 	constructor(vector: Vector) {
 		super();
 
@@ -127,12 +161,20 @@ class VectorElement extends HTMLElement {
 		this.append(...vector.collect());
 	}
 
-	render(parent?: Element, r?: boolean) {
-		is(r) ? r ? is(parent) ? parent!.appendChild(this) :
-			document.body.appendChild(this)
-			: this.remove() :
-			is(parent) ? parent!.appendChild(this) :
-				document.body.appendChild(this);
+	// render(parent?: Element, r?: boolean) {
+	// 	is(r) ? r ? is(parent) ? parent!.appendChild(this) :
+	// 		document.body.appendChild(this)
+	// 		: this.remove() :
+	// 		is(parent) ? parent!.appendChild(this) :
+	// 			document.body.appendChild(this);
+	// }
+
+	cls(...cls: string[]) {
+		this.classList.add(...cls)
+	}
+
+	render(parent: HTMLElement) {
+		parent.appendChild(this);
 	}
 
 	is_rendered(): boolean {
