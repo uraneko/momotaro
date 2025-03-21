@@ -1,20 +1,52 @@
-import { type Opt, Clone } from "./core";
+import { type Maybe, Clone, is } from "./core";
 
 export class Parcel extends Clone {
 	constructor(headers?: Headers) {
 		super();
 
 		this.headers = headers ?? new Headers();
-		this.type_names = DEF_TYPE_NAMES;
-		this._parsers = DEF_PARSERS;
+		this.type_names = INIT_TYPE_NAMES;
+		this._parsers = INIT_PARSERS;
 	}
 
 	private headers: Headers;
+	// TODO this is probably unneeded
 	private type_names: Map<string, string>;
-	private _parsers: Map<string, (data: any) => any>;
+	private _parsers: Map<string, (data: Payload) => ParserOutput>;
 
-	request(uri: string, data?: string): ParcelRequest {
-		return new ParcelRequest(uri, this.headers, this.content_type(), data);
+	/// adds new header or updates header value if already there
+	header(key: string, val: string) {
+		this.headers.has(key) ? this.headers.set(key, val) : this.headers.append(key, val);
+	}
+
+	// removes header from parcel headers
+	remove(key: string): Maybe<string> {
+		if (!this.headers.has(key)) return undefined;
+
+		const val = this.headers.get(key)!;
+		this.headers.delete(key);
+
+		return val;
+	}
+
+	// clears all headers
+	clear() {
+		this.headers = new Headers();
+	}
+
+	// generates new ParcelRequest from this parcel
+	request(path: string, param: string, data?: string): ParcelRequest {
+		param = param.replaceAll("/", "%2f");
+		return new ParcelRequest(
+			path + "/" + param,
+			this.headers,
+			this.content_type(),
+			data
+		);
+	}
+
+	parser(): (data: Payload) => ParserOutput {
+		return this._parsers.get(this.content_type())!;
 	}
 
 	// TODO maybe better undefined handling 
@@ -26,41 +58,72 @@ export class Parcel extends Clone {
 		return this._parsers;
 	}
 
-	async get(uri: string) {
-		const req = this.request(uri);
+	async get(path: string, param: string): Promise<ParserOutput> {
+		const req = this.request(path, param);
 		const res = await req.get();
 
-		return res.parse(this.parsers());
+		const payload = await res.data();
+
+		// is data is string or data is json and not some simple k -> v (v dom parseable)
+		// then return data unparsed
+		if ((res.is_json() && !is_simple_json(payload as Jayson)) || res.is_text()) {
+			return payload as ParserOutput;
+		}
+
+		const parser = this.parser();
+		return res.parse(payload, parser);
 	}
 
-	async post(uri: string) {
-		const req = this.request(uri);
+	async post(path: string, param: string, data: string) {
+		const req = this.request(path, param, data);
 		const res = await req.post();
 
+		const payload = await res.data();
+		let parser = undefined;
+		if (!(res.is_json() && is_simple_json(payload as Jayson))) {
+			parser = this.parser();
+		}
 
-		return res.parse(this.parsers());
-
+		return res.parse(payload, parser);
 	}
 
-	async put(uri: string) {
-		const req = this.request(uri);
+	async put(path: string, param: string, data: string) {
+		const req = this.request(path, param, data);
 		const res = await req.put();
 
-		return res.parse(this.parsers());
+		const payload = await res.data();
+		let parser = undefined;
+		if (!(res.is_json() && is_simple_json(payload as Jayson))) {
+			parser = this.parser();
+		}
+
+		return res.parse(payload, parser);
 	}
 
-	async delete(uri: string) {
-		const req = this.request(uri);
+	async delete(path: string, param: string) {
+		const req = this.request(path, param);
 		const res = await req.delete();
 
-		return res.parse(this.parsers());
+		const payload = await res.data();
+		let parser = undefined;
+		if (!(res.is_json() && is_simple_json(payload as Jayson))) {
+			parser = this.parser();
+		}
+
+		return res.parse(payload, parser);
 	}
 
-	async patch(uri: string) {
-		const req = this.request(uri);
+	async patch(path: string, param: string, data: string) {
+		const req = this.request(path, param, data);
 		const res = await req.patch();
 
-		return res.parse(this.parsers());
+		const payload = await res.data();
+		let parser = undefined;
+		if (!(res.is_json() && is_simple_json(payload as Jayson))) {
+			parser = this.parser();
+		}
+
+		return res.parse(payload, parser);
 	}
 }
 
@@ -75,7 +138,7 @@ class ParcelRequest extends Clone {
 	}
 
 	private uri: string;
-	private payload: Opt<string>;
+	private payload: Maybe<string>;
 	private headers: Headers;
 	private type: string;
 
@@ -149,38 +212,56 @@ class ParcelResponse extends Clone {
 
 	is_not(): boolean { return this.type === undefined; }
 
-	// why is string allowed here as the type of data
-	async parse(parsers: Map<string, (data: string) => any>): Promise<any> {
-		const data = (() => {
-			if (this.is_json()) {
-				return this.payload.json();
-			} else if (this.is_svg() || this.is_html() || this.is_text()) {
-				return this.payload.text();
-			}
-		})();
+	async data(): Promise<Payload> {
+		if (this.is_json()) {
+			return this.payload.json();
+		} else if (this.is_svg() || this.is_html() || this.is_text()) {
+			return this.payload.text();
+		} else {
+			throw new Error("unexpected response data type");
+		}
+	}
 
-		const parsed = parsers.get(this.type)!(await data);
+	async parse(
+		data: Payload,
+		parser: Maybe<(data: Payload) => ParserOutput>
+	): Promise<ParserOutput> {
+		// const data = await this.data();
 
-		return parsed as TypeName<typeof parsed>;
+		const output = is(parser) ? parser!(data) : data;
+		return output as TypeName<typeof output>;
 	}
 }
 
 // TODO before parsing into anything 
 // first validate the security of the response data 
-const parse_json = (data: any): any => {
-	// const json = data.json();
-	// TODO
-	for (let [k, v] of Object.entries(data as JSON)) {
-		if (v.startsWith("<svg ")) {
-			data[k] = new DOMParser().parseFromString(v, "image/svg+xml").childNodes[0];
-		} else if (
-			v.startsWith("<a ") || 
-			v.startsWith("<div ") || 
-			v.startsWith("<span ") || 
-			v.startsWith("<button ")
-		){
-			data[k] = new DOMParser().parseFromString(v, "text/html").body.childNodes[0];
+const parse_json = (data: Payload): ParserOutput => {
+	data = data as Jayson;
+	for (let [k, v] of Object.entries(data)) {
+		if (is_svg(v)) {
+			data[k] = parse_svg(v);
+		} else if (is_html(v)) {
+			data[k] = parse_html(v);
 		}
+	}
+
+	return data as ParserOutput;
+};
+
+const parse_json_svg = (data: { [key: string]: any }): { [key: string]: any } => {
+	// console.log(data);
+	for (let [k, v] of Object.entries(data)) {
+		data[k] = parse_svg(v);
+	}
+
+	return data;
+}
+
+const parse_json_html = (data: { [key: string]: any }): { [key: string]: any } => {
+	// const json = data.json();
+	console.log(data);
+	for (let [k, v] of Object.entries(data)) {
+		data[k] = parse_html(v);
 	}
 
 	return data;
@@ -188,35 +269,38 @@ const parse_json = (data: any): any => {
 
 const parse_str = (data: string): string => { return data; }
 
-const parse_svg = (data: string): SVGSVGElement => {
-	// const data = await resp.text();
+const parse_svg = (data: Payload): ParserOutput => {
+	data = data as string;
 	const parsed = new DOMParser().parseFromString(data, "image/svg+xml");
 	const svg = parsed.querySelector("svg")!;
 
-	return svg;
+	return svg as SVGSVGElement;
 }
 
-const parse_html = (data: string): HTMLElement => {
-	// const data = await resp.text();
+const parse_html = (data: Payload): ParserOutput => {
+	data = data as string;
 	const parsed = new DOMParser().parseFromString(data, "text/html");
 	const html = parsed.body.children[0];
 
 	return html as HTMLElement;
 }
 
-
-const DEF_TYPE_NAMES = new Map([
+const INIT_TYPE_NAMES = new Map([
 	["application/json", "JSON"],
 	["image/svg+xml", "SVGSVGElement"],
 	["text/html", "HTMLElement"],
 	["text/plain", "string"]
 ]);
 
-const DEF_PARSERS: Map<string, (data: any) => any> = new Map([
+type Jayson = Record<string, any>;
+type Payload = Jayson | string;
+type ParserOutput = JSON | string | HTMLElement | SVGSVGElement;
+
+const INIT_PARSERS: Map<string, (data: Payload) => ParserOutput> = new Map([
 	["JSON", parse_json],
 	["SVGSVGElement", parse_svg],
 	["HTMLElement", parse_html],
-	["string", parse_str]
+	// ["string", parse_str]
 ]);
 
 type TypeName<T> =
@@ -226,3 +310,25 @@ type TypeName<T> =
 	T extends "Object" ? Object :
 	T extends "undefined" ? undefined :
 	any;
+
+const is_simple_json = (data: Jayson): boolean => {
+	return Object.values(data).every((val: any) => val.constructor.name == "String")
+}
+
+const is_svg = (data: string): boolean => {
+	return data.startsWith("<svg ") ||
+		data.startsWith("<svg\n") ||
+		data.startsWith("<?xml ") ||
+		data.startsWith("<?xml\n");
+};
+
+const is_html = (data: string): boolean => {
+	return data.startsWith("<a ") ||
+		data.startsWith("<a\n") ||
+		data.startsWith("<button ") ||
+		data.startsWith("<button\n") ||
+		data.startsWith("<span ") ||
+		data.startsWith("<span\n") ||
+		data.startsWith("<div ") ||
+		data.startsWith("<div\n");
+};

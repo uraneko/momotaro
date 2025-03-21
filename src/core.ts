@@ -1,12 +1,17 @@
 // this type alias is just that; an alias
 // it doesnt have the functionality of an option type
-export type Opt<T> = T | undefined;
+export type Maybe<T> = T | undefined;
+
+export type _ = any;
 
 export const NODISPLAY = "hidden";
 
+// types that matches all functions 
+export type Fn = (...args: any[]) => any;
+
 /// checks if a value is not undefined
 /// returns boolean 
-export const is = <T>(val: Opt<T>): boolean => {
+export const is = <T>(val: Maybe<T>): boolean => {
 	return val != undefined;
 }
 
@@ -31,11 +36,11 @@ export const make = <T extends Element>(
 	/// these are set using e.setAttribute(attrname, attrvalue)
 	attrs?: Object,
 	/// the element children
-	children?: Opt<T>[]
+	children?: Maybe<T>[]
 ): T => {
 	const html = document.createElement(tag);
 	if (children != undefined) {
-		html.append(...children.filter((child: Opt<T>) => child != undefined) as T[]);
+		html.append(...children.filter((child: Maybe<T>) => child != undefined) as T[]);
 
 	}
 	if (attrs != undefined) {
