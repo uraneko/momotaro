@@ -2,7 +2,6 @@
 	"name": "momo_components",
 	"version": "0.1.0",
 	"license": "MIT",
-	"private": true,
 	"description": "",
 	"keywords": [],
 	"type": "module",
@@ -20,7 +19,6 @@
 	"devDependencies": {
 		"typedoc": "^0.27.9",
 		"typescript": "^5.8.2",
-		"vitest": "^3.0.8",
-		"momo_core": "link:../momo_core"
+		"vitest": "^3.0.8"
 	}
 }
