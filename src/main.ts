@@ -1,4 +1,4 @@
-import { make, Component, MainContent, MainMenu, IconItem } from "momo_build/main";
+import { make, Component, MainContent, MainMenu, IconItem } from "momo_build/src/main";
 
 export class State {
 	constructor() {

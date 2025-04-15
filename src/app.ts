@@ -1,15 +1,25 @@
-import { make, MonoContainer } from "momo_build/main";
+import { make, MonoContainer, Opt, Res } from "momo_build/src/main";
+// import { Keys } from "momo_keys/src/main";
+// import { Navigator } from "momo_navigator/src/main";
+
+// NOTE clarifying the container <=> conponent relation 
+// components usually have classes that represent their data/dom/logic parts 
+// component dom part is represented by a container type: MonoContainer 
 
 export class Application {
-	constructor(content: string) {
-		this.dom = new AppElement(content);
+	constructor(...start_containers: MonoContainer[]) {
+		this.dom = new AppElement(...start_containers);
 		this.logs = new AppLogs();
 		this.cache = new AppCache();
+		this.watch_content();
 	}
 
 	private logs: AppLogs;
 	private dom: AppElement;
 	private cache: AppCache;
+	private components: Map<string, any>;
+	// private key_bindings: KeyBindings;
+	// private navigator: Navigator;
 
 	// use in correspondance with fetch/cache
 	// log(url: string, log: boolean) {
@@ -41,21 +51,24 @@ export class Application {
 
 		let cached = false;
 		if (cache) {
-			this.cache.push(url, svg);
+			this.cache.cache(url, svg);
 			cached = true;
 		}
-		this.logs.req(url, cached);
+		this.logs.log(new LogRecord("fetch", { url: url, cached: cached, cat: "svg/icon" }));
 
 		return svg;
 	}
 
-	// update a part of the dom, either main or sub content 
-	updater() {
+	// update a part of the dom app content, either main or sub content 
+	watch_content() {
 		new MutationObserver(() => {
-			const [signal_kind, signal_value] = this.dom.signal();
-			const dom = this.cache.read_comp(signal_value) as HTMLElement;
+			const [signal_kind, signal_value] = this.dom.signal("content");
+			// FIXME: this probably should be: check if in cache 
+			// if not found then fetch + cache and use 
+			// else load from cache 
+			// altho this logic should probably be in the cache read_comp method 
+			const dom = this.cache.load(new CacheQuery({ resource: signal_value })) as HTMLElement;
 			if (signal_kind == "main") {
-				// TODO: FIXME
 				this.dom.main(dom);
 			} else if (signal_kind == "sub") {
 				this.dom.sub(dom);
@@ -64,51 +77,27 @@ export class Application {
 			subtree: false,
 			attributes: true,
 			attributeOldValue: true,
-			attributeFilter: ["data-signal"],
+			attributeFilter: ["data-content-signal"],
 		});
 	}
-}
 
-class AppElement {
-	constructor(content: string) {
-		this.dom = make("div", {
-			"id": "application",
-			"data-main-signal": "",
-			"data-sub-signal": ""
+	watch_plugins() {
+		new MutationObserver(() => {
+			const [signal_kind, signal_value] = this.dom.signal("content");
+			if (signal_kind == "files") {
+				// TODO: make the request and get the data either from fetch or cache 
+				// TODO: on_click: if it's a file, show it in sub content 
+				// if it's a dir show it in main 
+				// if it's a file and user new tab opens it 
+				// then show it in its own specialized app window 
+				// something like what browsers do for pdf files
+			}
+		}).observe(this.dom.element(), {
+			subtree: false,
+			attributes: true,
+			attributeOldValue: true,
+			attributeFilter: ["data-plugins-signal"],
 		});
-		this.main_content = new MonoContainer();
-		this.sub_content = new MonoContainer();
-		this.main_menu = new MonoContainer();
-	}
-
-	private dom: HTMLDivElement;
-	private main_content: MonoContainer<HTMLElement>;
-	private main_menu: MonoContainer<HTMLElement>;
-	private sub_content: MonoContainer<HTMLElement>;
-	private overlayed: boolean = false;
-
-	element() { return this.dom }
-
-	main<T extends HTMLElement>(dom: T) {
-		this.disable_overlay();
-		this.main_content.update(dom);
-	}
-
-	sub<T extends HTMLElement>(dom: T) {
-		this.sub_content.update(dom);
-		this.enable_overlay();
-	}
-
-	disable_overlay() { this.overlayed = false; }
-
-	enable_overlay() { this.overlayed = true; }
-
-	toggle_overlay() { this.overlayed = !this.overlayed; }
-
-	overlay(ol: boolean) { this.overlayed = ol; }
-
-	signal(): [string, string] {
-		return this.dom.getAttribute("data-signal")!.split(':') as [string, string];
 	}
 }
 
@@ -151,73 +140,24 @@ const load_icons = async (res: any): Promise<JSON> => {
 	return json;
 };
 
-
 const load_json = async (res: any): Promise<JSON> => {
 	const json = res.json();
 
 	return await json;
 };
 
-class AppCache {
-	constructor() {
-	}
 
-	private icons: Map<string, SVGSVGElement> = new Map();
-	private comps: Map<string, Entity> = new Map();
-
-	icon(url: string, data: SVGSVGElement) {
-		this.icons.set(url, data);
-	}
-
-	comp(url: string, data: Entity) {
-		this.comps.set(url, data);
-	}
-
-	contains_key(name: string, kind: "icon" | "comp"): boolean {
-		return kind == "icon" ? this.icons.has(name) : this.comps.has(name);
-	}
-
-	contains_val(value: SVGSVGElement | Entity, kind: "icon" | "comp"): boolean {
-		return kind == "icon" ?
-			this.icons.values().some((val: SVGSVGElement) => val == value) :
-			this.comps.values().some((val: Entity) => val == value);
-	}
-
-	push(url: string, data: SVGSVGElement | Entity) {
-		if (data.constructor.name == "SVGSVGElement") {
-			this.icon(url, data as SVGSVGElement);
-		} else {
-			this.comp(url, data as Entity)
-		}
-	}
-
-	read_icon(name: string): Opt<SVGSVGElement> {
-		return this.icons.get(name)
-	}
-
-	read_comp(name: string): Opt<Entity> {
-		return this.comps.get(name)
-	}
-}
-
-type Opt<T> = T | undefined;
-type Res<T, E extends Error> = T | E;
-
-class AppLogs {
-	constructor() {
-	}
-
-	private errors: Map<string, Error> = new Map();
-	private fetch: Map<string, boolean> = new Map();
-
-	req(url: string, cached: boolean) {
-		this.fetch.set(url, cached);
-	}
-
-	// NOTE: use this when you dont want to handle an error
-	err(error: Error) {
-		this.errors.set(error.name, error);
-	}
-}
-
-class Entity { }
+// class App {
+// 	private dom: ApplicationDOM;
+// 	private logic: ApplicationLogic;
+// }
+// class System { }
+// // possibly better app design
+// class ApplicationLogic {
+// 	private state: AppState;
+// 	private nodes: Map<Node, System>;
+// }
+// class ApplicationDOM {
+// 	private root: HTMLElement;
+// 	private nodes: Map<Node, Element>;
+// }
