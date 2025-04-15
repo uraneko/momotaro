@@ -1,5 +1,5 @@
 {
-	"name": "momo_lib",
+	"name": "momo_core",
 	"version": "0.1.0",
 	"license": "MIT",
 	"description": "",
@@ -11,7 +11,9 @@
 		"help": "tsc --help",
 		"doc": "typedoc src/**/*.ts"
 	},
-	"exports": {},
+	"exports": {
+		"./*": "./src/*.ts"
+	},
 	"devDependencies": {
 		"typedoc": "^0.27.9",
 		"typescript": "^5.8.2",
