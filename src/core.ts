@@ -12,6 +12,8 @@ export type Fn = (...args: any[]) => any;
 /// checks if a value is not undefined
 /// returns boolean 
 export const is = <T>(val: Maybe<T>): boolean => {
+	// NOTE can be used for both null and undefined 
+	// since the expr type casts 
 	return val != undefined;
 }
 
