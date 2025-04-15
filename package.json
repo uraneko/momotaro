@@ -1,12 +1,20 @@
 {
-  "name": "momo_lib",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+	"name": "momo_lib",
+	"version": "0.1.0",
+	"license": "MIT",
+	"description": "",
+	"keywords": [],
+	"type": "module",
+	"scripts": {
+		"test": "vitest",
+		"build": "tsc",
+		"help": "tsc --help",
+		"doc": "typedoc src/**/*.ts"
+	},
+	"exports": {},
+	"devDependencies": {
+		"typedoc": "^0.27.9",
+		"typescript": "^5.8.2",
+		"vitest": "^3.0.8"
+	}
 }
