@@ -11,7 +11,14 @@
 		"help": "tsc --help",
 		"doc": "typedoc src/**/*.ts"
 	},
-	"exports": {},
+	"exports": {
+		"./core/*": "./src/core/src/*.ts",
+		"./components/*": "./src/components/src/*.ts",
+		"./app/*": "./src/app/src/*.ts",
+		"./keybindings/*": "./src/keybindings/src/*.ts",
+		"./loader/*": "./src/loader/src/*.ts",
+		"./router/*": "./src/router/src/*.ts"
+	},
 	"devDependencies": {
 		"typedoc": "^0.27.9",
 		"typescript": "^5.8.2",
