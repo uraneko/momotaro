@@ -1,4 +1,4 @@
-import { make, type Maybe, type _ } from "momo_core/core";
+import { make, type Maybe, type _ } from "../../../core/src/core";
 
 export class ShadowContainer extends HTMLElement {
 	constructor(id: string, ...nodes: Element[]) {

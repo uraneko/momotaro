@@ -1,4 +1,4 @@
-import { make, type Maybe } from "momo_core/core";
+import { make, type Maybe } from "../../../core/src/core";
 import { Jar } from "../wrappers/jar";
 
 export class TreeElement extends HTMLElement {

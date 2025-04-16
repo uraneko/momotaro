@@ -1,4 +1,4 @@
-import { type _, make, type Maybe, is, NODISPLAY } from "momo_core/core";
+import { type _, make, type Maybe, is, NODISPLAY } from "../../../core/src/core";
 
 type Wrapper = "a" | "button" | "span";
 type Content = "main" | "sub" | "-";
