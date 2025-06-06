@@ -4,7 +4,7 @@ export type Maybe<T> = T | undefined;
 
 export type _ = any;
 
-export const NODISPLAY = "hidden";
+// export const NODISPLAY = "hidden";
 
 // types that matches all functions 
 export type Fn = (...args: any[]) => any;
@@ -16,6 +16,10 @@ export const is = <T>(val: Maybe<T>): boolean => {
 	// since the expr type casts 
 	return val != undefined;
 }
+
+// NOTE the generic is probably not needed
+export const type_name = <T extends Object>(value: T):
+	string => { return value.constructor.name; }
 
 /// returns a new element with given tag name, attributes and children
 /// passing no arguments will return a new div: <div></div>
@@ -70,8 +74,73 @@ export const make = <T extends Element>(
 // TEST: tests the make function
 // currently not working since runtimes have no access to the dom apis (no window.document)
 
+// batch appends ne w children to 
+export const extend = (parent: Element, ...items: Element[]) => {
+	const frag = document.createDocumentFragment();
+	items.forEach((i: Element) => frag.appendChild(i));
+	parent.appendChild(frag);
+}
+
+// inserts a new sibling node before the given index
 export const put = (parent: Element, child: Element, idx: number) => {
 	parent.insertBefore(parent.childNodes[idx + 1], child);
+}
+
+export class DocumentNode {
+	constructor(e: Element) {
+		this.e = e;
+	}
+
+	private e: Element;
+
+	// makes a new docnode
+	static make() { }
+
+	// pushes dom element to this.e
+	push() { }
+
+	// puts dom element at idx pos in this.e children
+	put() { }
+
+	// extends dom element with many children
+	extend(...items: Element[]) {
+		const frag = document.createDocumentFragment();
+		items.forEach((i: Element) => frag.appendChild(i));
+		this.e.appendChild(frag);
+	}
+
+	// removes this.e from dom 
+	drop() {
+		this.e.remove();
+	}
+
+	// removes child element from this.e 
+	remove() { }
+
+	// swaps 2 child elements
+	swap(child: Element, other: Element) {
+		if (!this.e.contains(child)) { throw new Error("element is not child of this.e"); }
+		child.replaceWith(other);
+	}
+
+	// removes all children dom nodes of this.e 
+	clear() {
+	}
+
+	// toggles this.e's display on and off
+	toggle_display() {
+		this.e.classList.toggle("hidden");
+	}
+
+	// sets this.e display to passed value
+	display(d: boolean) {
+		d ? this.e.classList.add("hidden") : this.e.classList.remove("hidden");
+	}
+
+	// returns this.e 
+	element() {
+		return this.e;
+	}
 }
 
 // the following classes are not to be inherited but they are simply here to record the 

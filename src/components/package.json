@@ -1,5 +1,5 @@
 {
-	"name": "momo_components",
+	"name": "momotaro_components",
 	"version": "0.1.0",
 	"license": "MIT",
 	"description": "",
@@ -13,7 +13,7 @@
 	},
 	"exports": {
 		"./collections/*": "./src/collections/*.ts",
-		"./primitives/*": "./src/primitives/*.ts",
+		"./elementals/*": "./src/elementals/*.ts",
 		"./wrappers/*": "./src/wrappers/*.ts"
 	},
 	"devDependencies": {

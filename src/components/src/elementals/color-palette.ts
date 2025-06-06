@@ -1,6 +1,6 @@
-import { make, Maybe, _ } from "momo_core/core";
+import { make, Maybe, _ } from "momotaro_core/core";
 
-class ColorPalette extends HTMLCanvasElement {
+export class ColorPalette extends HTMLCanvasElement {
 	constructor() {
 		super();
 

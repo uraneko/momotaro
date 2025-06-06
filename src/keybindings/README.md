@@ -1,4 +1,4 @@
-# momo_keyboard
+# momotaro_keyboard
 
 To install dependencies:
 

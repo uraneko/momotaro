@@ -1,4 +1,4 @@
-# momo_app
+# momotaro_app
 
 ### Discussion
 

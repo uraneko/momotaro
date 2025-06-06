@@ -1,4 +1,6 @@
-import { type _, make, type Maybe, is, NODISPLAY } from "../../../core/src/core";
+import { type _, make, type Maybe, is } from "../../../core/src/core";
+
+const NODISPLAY = "hidden";
 
 type Wrapper = "a" | "button" | "span";
 type Content = "main" | "sub" | "-";
@@ -8,21 +10,37 @@ type Callbacks = {
 	hover?: (e?: Event) => void,
 };
 
-export class Vector /* extends Map<string,Element> */ {
-	constructor(
+export class Vec /* extends Map<string,Element> */ {
+	constructor() {
+		// super(Object.entries(nodes));
+
+		this._id = "";
+		this._direction = "row";
+		this._nodes = new Map();
+		this._is_frozen = false;
+	}
+
+	static from_json(
 		id: string,
 		nodes: JSON,
 	) {
-		// super(Object.entries(nodes));
+		const vec = new Vec();
 
-		this._id = id;
-		this._direction = "row";
-		this._nodes = nodes.constructor.name == "Map" ? nodes as _ as Map<_, _> : new Map(Object.entries(nodes));
-		this._is_frozen = false;
-		// this.cocoon();
+		vec._id = id;
+		vec._direction = "row";
+		vec._nodes = nodes.constructor.name == "Map" ?
+			nodes as _ as Map<_, _> :
+			new Map(Object.entries(nodes)
+				// .map((kv: [string, SVGSVGElement]) =>
+				// [kv[0].slice(0, kv[0].length - 4), kv[1]])
+			);
+		vec._is_frozen = false;
 	}
 
-	static from_arr(id: string, ...nodes: string[]): Vector {
+
+	static from_arr(id: string, ...nodes: string[]): Vec {
+		const vec = new Vec();
+
 		let idx = 0;
 		const json = new Map(nodes.map((node: string) => {
 			const kv = [idx,
@@ -31,13 +49,16 @@ export class Vector /* extends Map<string,Element> */ {
 			return kv;
 		}) as Array<[number, Element]>);
 
-		return new Vector(id, json as Object as JSON);
+		vec._id = id;
+		vec._nodes = json as Object as JSON;
+
+		return vec;
 	}
 
-	_id: string;
-	_direction: "column" | "row";
-	_nodes: Map<string, Element>;
-	_is_frozen: boolean;
+	private _id: string;
+	private _direction: "column" | "row";
+	private _nodes: Map<string, Element>;
+	private _is_frozen: boolean;
 
 	// cocoon() {
 	// 	const iter = this.nodes();
@@ -56,6 +77,7 @@ export class Vector /* extends Map<string,Element> */ {
 
 	nodes(): MapIterator<[string, Element]> {
 		return this._nodes.entries();
+		// return new Map(this._nodes).entries()
 	}
 
 	id(): string { return this._id; }
@@ -85,17 +107,20 @@ export class Vector /* extends Map<string,Element> */ {
 			this._nodes.size == 0
 		) return false;
 
+		console.log(0, this._nodes);
 		order.filter((k: string) => this.contains(k));
 
 		const map = new Map();
 		const iter = order.values();
 		let next = iter.next();
+		console.log(next);
 		while (!next.done) {
 			map.set(next.value, this._nodes.get(next.value!));
 			next = iter.next();
 		}
 
 		this._nodes = map;
+		// console.log(1, this._nodes);
 
 		return true;
 	}
@@ -124,8 +149,8 @@ export class Vector /* extends Map<string,Element> */ {
 		return new Array(...this._nodes.values());
 	}
 
-	to_element(): VectorElement {
-		return new VectorElement(this);
+	to_element(): VecElement {
+		return new VecElement(this);
 	}
 
 	clone(): this {
@@ -151,8 +176,8 @@ export class Vector /* extends Map<string,Element> */ {
 	}
 }
 
-export class VectorElement extends HTMLElement {
-	constructor(vector: Vector) {
+export class VecElement extends HTMLElement {
+	constructor(vector: Vec) {
 		super();
 
 		// NOTE every component, which this is one, must have an id 
@@ -205,7 +230,7 @@ export class VectorElement extends HTMLElement {
 		return this.classList.contains("column");
 	}
 }
-customElements.define("vector-coll", VectorElement);
+customElements.define("vector-coll", VecElement);
 
 // NOTE: css should be modular? (not sure thats the word) but
 // should write many varying css rules for the same element based on different class lists
